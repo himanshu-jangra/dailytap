@@ -1,5 +1,5 @@
 // DailyTap Service Worker
-const CACHE_NAME = 'dailytap-v2-m3';
+const CACHE_NAME = 'dailytap-v1';
 const ASSETS = [
     '/',
     '/index.html',
@@ -40,7 +40,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     // Skip non-GET requests
     if (event.request.method !== 'GET') return;
-
+    
     // Skip external requests (like Google fonts)
     if (!event.request.url.startsWith(self.location.origin)) return;
 
@@ -56,10 +56,10 @@ self.addEventListener('fetch', (event) => {
                                     .then((cache) => cache.put(event.request, response));
                             }
                         })
-                        .catch(() => { });
+                        .catch(() => {});
                     return cached;
                 }
-
+                
                 // Not in cache, fetch from network
                 return fetch(event.request)
                     .then((response) => {
@@ -90,23 +90,23 @@ async function syncLogs() {
         const tx = db.transaction(['logs', 'metadata'], 'readonly');
         const logsStore = tx.objectStore('logs');
         const metaStore = tx.objectStore('metadata');
-
+        
         // Get unsynced logs
         const logs = await getAllFromStore(logsStore);
         const unsyncedLogs = logs.filter(log => !log.synced);
-
+        
         if (unsyncedLogs.length === 0) {
             return { success: true, message: 'Nothing to sync' };
         }
-
+        
         // Get script URL
         const scriptUrl = await getFromStore(metaStore, 'script_url');
         const sheetLink = await getFromStore(metaStore, 'sheet_link');
-
+        
         if (!scriptUrl || !sheetLink) {
             return { success: false, message: 'Missing configuration' };
         }
-
+        
         // Group logs by date
         const logsByDate = {};
         unsyncedLogs.forEach(log => {
@@ -115,12 +115,12 @@ async function syncLogs() {
             }
             logsByDate[log.date][log.eventName] = log.time;
         });
-
+        
         // Get event structure
         const eventsStore = db.transaction('events', 'readonly').objectStore('events');
         const events = await getAllFromStore(eventsStore);
         const structure = events.sort((a, b) => a.order - b.order).map(e => e.name);
-
+        
         // Send each date's logs
         for (const [date, eventTimes] of Object.entries(logsByDate)) {
             const payload = {
@@ -129,7 +129,7 @@ async function syncLogs() {
                 events: eventTimes,
                 structure: structure
             };
-
+            
             await fetch(scriptUrl, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -137,24 +137,24 @@ async function syncLogs() {
                 body: JSON.stringify(payload)
             });
         }
-
+        
         // Mark logs as synced
         const writeTx = db.transaction('logs', 'readwrite');
         const writeStore = writeTx.objectStore('logs');
-
+        
         for (const log of unsyncedLogs) {
             log.synced = true;
             writeStore.put(log);
         }
-
+        
         await writeTx.done;
-
+        
         // Notify clients
         const clients = await self.clients.matchAll();
         clients.forEach(client => {
             client.postMessage({ type: 'SYNC_COMPLETE' });
         });
-
+        
         return { success: true };
     } catch (error) {
         console.error('Sync failed:', error);

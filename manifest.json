@@ -4,8 +4,8 @@
     "description": "Personal Event Logging - Log your daily events with a single tap",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#141218",
-    "theme_color": "#141218",
+    "background_color": "#18191C",
+    "theme_color": "#18191C",
     "orientation": "portrait-primary",
     "icons": [
         {

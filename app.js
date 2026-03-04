@@ -9,7 +9,6 @@ let events = [];
 let todayLogs = [];
 let editingEventId = null;
 let selectedIcon = '☀️';
-let currentTheme = 'dark'; // 'dark' or 'light'
 
 // Available icons for events
 const AVAILABLE_ICONS = [
@@ -43,7 +42,6 @@ const SKIP_MESSAGES = [
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         await initDB();
-        await initTheme(); // Initialize theme first
         await loadApp();
         setupEventListeners();
         initSyncStatus();
@@ -52,32 +50,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         showToast('Error loading app', 'error');
     }
 });
-
-async function initTheme() {
-    // Load from local storage or default to dark
-    const savedTheme = localStorage.getItem('dailytap_theme') || 'dark';
-    setTheme(savedTheme);
-
-    // Bind toggle listener
-    const toggle = document.getElementById('theme-switch');
-    if (toggle) {
-        toggle.checked = savedTheme === 'dark';
-        toggle.addEventListener('change', (e) => {
-            const newTheme = e.target.checked ? 'dark' : 'light';
-            setTheme(newTheme);
-        });
-    }
-}
-
-function setTheme(theme) {
-    currentTheme = theme;
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('dailytap_theme', theme);
-
-    // Update meta theme-color for M3 dynamic feel
-    const themeColor = theme === 'dark' ? '#141218' : '#FFFBFE';
-    document.querySelector('meta[name="theme-color"]').setAttribute('content', themeColor);
-}
 
 async function loadApp() {
     const setupComplete = await isSetupComplete();
@@ -90,7 +62,7 @@ async function loadApp() {
 }
 
 // ========================================
-// Screen Navigation (with View Transitions)
+// Screen Navigation
 // ========================================
 
 function hideAllScreens() {
@@ -100,55 +72,28 @@ function hideAllScreens() {
 }
 
 function showSetupScreen() {
-    // Use View Transition if available
-    if (document.startViewTransition) {
-        document.startViewTransition(() => {
-            hideAllScreens();
-            document.getElementById('setup-screen').classList.remove('hidden');
-            loadSetupEvents();
-        });
-    } else {
-        hideAllScreens();
-        document.getElementById('setup-screen').classList.remove('hidden');
-        loadSetupEvents();
-    }
+    hideAllScreens();
+    document.getElementById('setup-screen').classList.remove('hidden');
+    loadSetupEvents();
 }
 
 async function showMainScreen() {
-    const updateDOM = async () => {
-        hideAllScreens();
-        document.getElementById('main-screen').classList.remove('hidden');
+    hideAllScreens();
+    document.getElementById('main-screen').classList.remove('hidden');
 
-        await checkDateChange();
-        await loadEvents();
-        await loadTodayLogs();
-        await loadCurrentEventIndex();
+    await checkDateChange();
+    await loadEvents();
+    await loadTodayLogs();
+    await loadCurrentEventIndex();
 
-        renderMainScreen();
-        updateDateDisplay();
-    };
-
-    if (document.startViewTransition) {
-        document.startViewTransition(async () => {
-            await updateDOM();
-        });
-    } else {
-        await updateDOM();
-    }
+    renderMainScreen();
+    updateDateDisplay();
 }
 
 function showSettingsScreen() {
-    if (document.startViewTransition) {
-        document.startViewTransition(() => {
-            hideAllScreens();
-            document.getElementById('settings-screen').classList.remove('hidden');
-            loadSettingsData();
-        });
-    } else {
-        hideAllScreens();
-        document.getElementById('settings-screen').classList.remove('hidden');
-        loadSettingsData();
-    }
+    hideAllScreens();
+    document.getElementById('settings-screen').classList.remove('hidden');
+    loadSettingsData();
 }
 
 // ========================================
@@ -179,9 +124,6 @@ function createEventItem(event, index, context) {
     item.draggable = true;
     item.dataset.index = index;
 
-    // Show short name if exists
-    const displayName = event.shortName ? `${event.name} (${event.shortName})` : event.name;
-
     item.innerHTML = `
         <div class="drag-handle">
             <span></span>
@@ -189,7 +131,7 @@ function createEventItem(event, index, context) {
             <span></span>
         </div>
         <div class="event-item-icon">${event.icon}</div>
-        <div class="event-item-name">${displayName}</div>
+        <div class="event-item-name">${event.name}</div>
         <div class="event-item-actions">
             <button class="event-item-btn edit-event-btn" data-id="${event.id}" aria-label="Edit">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -345,14 +287,10 @@ function renderEventHistory() {
     loggedEvents.forEach(log => {
         const item = document.createElement('div');
         item.className = `history-item ${log.status === 'skipped' ? 'skipped' : ''}`;
-
-        // Use short name if available for display? Maybe, but history usually shows full name
-        const displayName = log.event?.shortName || log.eventName;
-
         item.innerHTML = `
             <div class="history-item-icon">${log.event?.icon || '📋'}</div>
             <div class="history-item-content">
-                <div class="history-item-name">${displayName}</div>
+                <div class="history-item-name">${log.eventName}</div>
                 <div class="history-item-time">${log.status === 'skipped' ? 'Skipped' : log.time}</div>
             </div>
         `;
@@ -380,9 +318,7 @@ function renderCurrentEvent() {
 
         const currentEvent = events[currentEventIndex];
         document.getElementById('current-event-icon').textContent = currentEvent.icon;
-
-        // Use shortName if available
-        document.getElementById('current-event-name').textContent = currentEvent.shortName || currentEvent.name;
+        document.getElementById('current-event-name').textContent = currentEvent.name;
     }
 }
 
@@ -571,7 +507,6 @@ function openAddEventModal(context = 'setup') {
 
     document.getElementById('event-modal-title').textContent = 'Add Event';
     document.getElementById('event-name-input').value = '';
-    document.getElementById('event-short-name-input').value = ''; // Clear short name
     document.getElementById('event-save-btn').textContent = 'Add Event';
     document.getElementById('event-delete-btn').style.display = 'none';
 
@@ -593,22 +528,13 @@ function openEditEventModal(eventId, context = 'setup') {
 
     document.getElementById('event-modal-title').textContent = 'Edit Event';
     document.getElementById('event-name-input').value = event.name;
-    document.getElementById('event-short-name-input').value = event.shortName || ''; // Load short name
-    document.getElementById('event-save-btn').textContent = 'Save';
+    document.getElementById('event-save-btn').textContent = 'Save Changes';
     document.getElementById('event-delete-btn').style.display = 'block';
 
     renderIconPicker();
     openModal('event-modal');
 
     document.getElementById('event-modal').dataset.context = context;
-}
-
-function fullLogout() {
-    if (confirm('Are you sure you want to disconnect and reset the app? This will clear all local data.')) {
-        localStorage.clear();
-        indexedDB.deleteDatabase('DailyTapDB');
-        location.reload();
-    }
 }
 
 function renderIconPicker() {
@@ -631,7 +557,6 @@ function renderIconPicker() {
 
 function saveEventFromModal() {
     const name = document.getElementById('event-name-input').value.trim();
-    const shortName = document.getElementById('event-short-name-input').value.trim();
     const context = document.getElementById('event-modal').dataset.context || 'setup';
 
     if (!name) {
@@ -646,7 +571,6 @@ function saveEventFromModal() {
         const event = eventsList.find(e => e.id === editingEventId);
         if (event) {
             event.name = name;
-            event.shortName = shortName;
             event.icon = selectedIcon;
         }
     } else {
@@ -654,7 +578,6 @@ function saveEventFromModal() {
         eventsList.push({
             id: generateId(),
             name: name,
-            shortName: shortName,
             icon: selectedIcon,
             order: eventsList.length
         });
@@ -694,10 +617,6 @@ function deleteEventFromModal() {
 // ========================================
 
 async function loadSettingsData() {
-    // Theme switch (already handled in initTheme but good to ensure correct state)
-    const toggle = document.getElementById('theme-switch');
-    if (toggle) toggle.checked = currentTheme === 'dark';
-
     const sheetLink = await getMeta('sheet_link') || '';
     const scriptUrl = await getMeta('script_url') || '';
 
@@ -952,7 +871,6 @@ function setupEventListeners() {
     document.getElementById('force-sync-btn').addEventListener('click', syncNow);
     document.getElementById('clear-today-btn').addEventListener('click', resetTodayProgress);
     document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
-    document.getElementById('logout-btn').addEventListener('click', fullLogout);
 
     // Edit modal
     document.getElementById('edit-save-btn').addEventListener('click', saveEditedEvent);

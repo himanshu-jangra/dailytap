@@ -2,7 +2,6 @@
 
 [![PWA Ready](https://img.shields.io/badge/PWA-Ready-7C4DFF?style=for-the-badge&logo=pwa&logoColor=white)](/)
 [![Offline First](https://img.shields.io/badge/Offline--First-Reliable-4CAF50?style=for-the-badge)](/)
-[![Material 3](https://img.shields.io/badge/UI-Material_3-18191C?style=for-the-badge)](/)
 
 **DailyTap** is a minimalist, mobile-first, offline-first web application designed for one-touch logging of your daily routines. Whether it's "Wake Up", "Reach Office", or "Workout", DailyTap makes tracking your life as simple as a single tap.
 
@@ -13,7 +12,6 @@
 -   **🎯 Single Large Event Button**: Optimized for the "thumb reach zone" for lightning-fast logging.
 -   **📶 Offline-First**: Built with IndexedDB. Log your data anywhere, even without internet.
 -   **🔄 Auto-Sync**: Automatically pushes your logs to a **Google Sheet** via Google Apps Script when you're back online.
--   **🪄 Material You Aesthetics**: A premium, dark-mode design with Material 3 (Material You) expressive elements and smooth micro-animations.
 -   **⏭️ Skip & Edit**: Missed an event? Skip it with a tap. Made a mistake? Manually edit any event time.
 -   **🛠️ Fully Customizable**: Add, remove, and reorder events to fit your specific daily routine.
 -   **📱 PWA Power**: Install it on your home screen for an app-like experience without the App Store.
@@ -98,4 +96,4 @@ This project is open-source. Feel free to fork and customize it for your persona
 
 ---
 
-*Made with ⚡ by Antigravity*
+*Made with AI*
